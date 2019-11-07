@@ -21,13 +21,13 @@ const workers = []
 var regex = new RegExp(
     '^(http[s]?:\\/\\/(www\\.)?|ftp:\\/\\/(www\\.)?|www\\.){1}([0-9A-Za-z-\\.@:%_+~#=]+)+((\\.[a-zA-Z]{2,3})+)(/(.)*)?(\\?(.)*)?'
 )
-
+ParseFeed('https://couplegoals.podbean.com/feed.xml', workers, WORKER_COUNT)
 fs.createReadStream(path.join(__dirname, '../RSS-large-sample.csv'))
     .pipe(csv())
     .on('data', row => {
         console.time(row.RSS)
         if (regex.test(row.RSS)) {
-            ParseFeed(row.RSS, workers, WORKER_COUNT)
+            // ParseFeed(row.RSS, workers, WORKER_COUNT)
         } else {
             console.log('Not a valid Url')
         }

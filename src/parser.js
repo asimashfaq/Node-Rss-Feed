@@ -12,6 +12,10 @@ let retry = []
 var client = redis.createClient(6379, '0.0.0.0')
 client.on('connect', () => {
     console.log('Redis client connected')
+    /*client.set(
+        '39f443f7c55a4e2454f25cce806a81665d3150d01ab36b47194e17f6094900d1',
+        ''
+    )*/
 })
 client.on('error', err => {
     console.log('Something went wrong ' + err)
@@ -74,9 +78,11 @@ const ParseFeed = async (url, workers, WORKER_COUNT) => {
             }
             const urlHash = hash(url)
             const dataHash = hash(data)
+            console.log(urlHash, dataHash)
             if (data.episodes == undefined) {
                 workers[0].postMessage({
                     data,
+                    type: 'Feed',
                     hash: urlHash
                 })
                 dataCount++
@@ -84,15 +90,21 @@ const ParseFeed = async (url, workers, WORKER_COUNT) => {
                 //console.log(data)
                 return
             }
-            dataCount += data.episodes.length
-            client.get(urlHash, value => {
-                if (true) {
-                    //if (value !== dataHash) {
+
+            client.get(urlHash, (err, value) => {
+                if (value !== dataHash) {
+                    client.set(urlHash, dataHash, redis.print)
                     // do the processing
-                    //client.set(urlHash, dataHash)
+                    workers[0].postMessage({
+                        data,
+                        type: 'Feed'
+                    })
+                    dataCount++
+                    dataCount += data.episodes.length
+
                     const episodes = [...data.episodes]
                     while (episodes.length > 0) {
-                        for (let i = 0; i < WORKER_COUNT; i++) {
+                        for (let i = 1; i < WORKER_COUNT; i++) {
                             const episode = episodes.shift()
 
                             if (episode != undefined) {
@@ -105,11 +117,7 @@ const ParseFeed = async (url, workers, WORKER_COUNT) => {
                         }
                     }
                 } else {
-                    const episodes = [...data.episodes]
-                    while (episodes.length > 0) {
-                        const episode = episodes.shift()
-                        results.push({ id: episode.episode, success: true })
-                    }
+                    console.log('Skipping Proccessing')
                 }
             })
         })
