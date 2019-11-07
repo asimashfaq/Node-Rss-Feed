@@ -5,7 +5,11 @@ const { id, index } = workerData
 parentPort.on('message', msg => {
     if (msg) {
         //console.log(msg)
-        parentPort.postMessage({ id: msg.episode.episode, save: true })
+        if (msg.episode != undefined) {
+            parentPort.postMessage({ id: msg.episode.episode, save: true })
+            return
+        }
+        parentPort.postMessage({ id: 12, save: true })
         return
     }
     throw new Error(
