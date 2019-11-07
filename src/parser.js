@@ -1,7 +1,7 @@
 import request from 'request'
 import parsePodcast from 'node-podcast-parser'
 const redis = require('redis')
-const { hash } = require('./utils')
+const { hash, generateJson } = require('./utils')
 
 let REQUEST_COUNT = 0
 let REQUEST_PROCESSED_COUNT = 0
@@ -24,7 +24,7 @@ client.on('error', err => {
 const ParseFeed = async (url, workers, WORKER_COUNT) => {
     var options = {
         url: url.trim(),
-        timeout: 35000
+        timeout: 25000
     }
     REQUEST_COUNT++
     request(options, (error, response, body) => {
@@ -72,52 +72,55 @@ const ParseFeed = async (url, workers, WORKER_COUNT) => {
         parsePodcast(body, (err, data) => {
             if (err) {
                 console.log(',,,,,', response.request.href)
-                console.log(',,,', body)
-                console.error('Parsing error', err)
                 return
             }
             const urlHash = hash(url)
             const dataHash = hash(data)
-            console.log(urlHash, dataHash)
-            if (data.episodes == undefined) {
-                workers[0].postMessage({
-                    data,
-                    type: 'Feed',
-                    hash: urlHash
-                })
-                dataCount++
-                //console.log(response.request.href)
-                //console.log(data)
-                return
-            }
-
             client.get(urlHash, (err, value) => {
                 if (value !== dataHash) {
-                    client.set(urlHash, dataHash, redis.print)
+                    console.log(urlHash, dataHash)
+                    client.set(urlHash, dataHash)
+                    if (data.episodes == undefined) {
+                        workers[0].postMessage({
+                            data,
+                            type: 'Feed',
+                            url
+                        })
+                        dataCount++
+                        return
+                    }
+
                     // do the processing
                     workers[0].postMessage({
                         data,
-                        type: 'Feed'
+                        type: 'Feed',
+                        url
                     })
                     dataCount++
-                    dataCount += data.episodes.length
 
                     const episodes = [...data.episodes]
-                    while (episodes.length > 0) {
-                        for (let i = 1; i < WORKER_COUNT; i++) {
-                            const episode = episodes.shift()
+                    const episodeHash = hash(episodes)
+                    client.get(urlHash + 'episodes', (err, eHash) => {
+                        if (eHash != episodeHash) {
+                            dataCount += data.episodes.length
 
-                            if (episode != undefined) {
-                                //console.log(episode)
-                                workers[i].postMessage({
-                                    episode,
-                                    hash: hash(episode)
-                                })
+                            client.set(urlHash + 'episodes', episodeHash)
+                            while (episodes.length > 0) {
+                                for (let i = 1; i < WORKER_COUNT; i++) {
+                                    const episode = episodes.shift()
+                                    if (episode != undefined) {
+                                        workers[i].postMessage({
+                                            episode,
+                                            url,
+                                            feedHash: dataHash
+                                        })
+                                    }
+                                }
                             }
                         }
-                    }
+                    })
                 } else {
-                    console.log('Skipping Proccessing')
+                    // console.log('Skipping Proccessing')
                 }
             })
         })

@@ -15,19 +15,19 @@ const { Worker } = require('worker_threads')
 console.time('program_duration')
 
 // change the count to the number of workers you wanted to run.
-const WORKER_COUNT = 5
+const WORKER_COUNT = 7
 const workers = []
-
+const errors = []
 var regex = new RegExp(
     '^(http[s]?:\\/\\/(www\\.)?|ftp:\\/\\/(www\\.)?|www\\.){1}([0-9A-Za-z-\\.@:%_+~#=]+)+((\\.[a-zA-Z]{2,3})+)(/(.)*)?(\\?(.)*)?'
 )
-ParseFeed('https://couplegoals.podbean.com/feed.xml', workers, WORKER_COUNT)
+//ParseFeed('https://couplegoals.podbean.com/feed.xml', workers, WORKER_COUNT)
 fs.createReadStream(path.join(__dirname, '../RSS-large-sample.csv'))
     .pipe(csv())
     .on('data', row => {
         console.time(row.RSS)
         if (regex.test(row.RSS)) {
-            // ParseFeed(row.RSS, workers, WORKER_COUNT)
+            ParseFeed(row.RSS, workers, WORKER_COUNT)
         } else {
             console.log('Not a valid Url')
         }
@@ -51,7 +51,12 @@ const createWorker = (id, index) => {
 
 // Receive Messages from the Workers
 function hanleWorkerMessages(data) {
-    results.push(data)
+    if (data.save == true) {
+        results.push(data)
+    } else {
+        errors.push(data)
+    }
+
     //console.log(results)
 }
 
@@ -62,9 +67,10 @@ setInterval(() => {
         Requests Send : ${RequestCount()}
         Requests Processed : ${RequestProcessdCount()}
         Failed Request : ${FailedCount()}
+        Errors :${JSON.stringify(errors)}
     `)
     if (
-        DataCount() == results.length &&
+        DataCount() == results.length + errors.length &&
         RequestCount() == RequestProcessdCount() + FailedCount()
     ) {
         workCompleted()

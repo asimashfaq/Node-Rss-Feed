@@ -4,7 +4,6 @@ const init = () => {
     mongoose.connect(process.env.MONGO_URL || config.get('mongoUrl'), {
         useNewUrlParser: true,
         useCreateIndex: true,
-        useFindAndModify: true,
         useUnifiedTopology: true
     })
 
@@ -17,6 +16,8 @@ const init = () => {
     mongoDb.once('open', () => {
         console.log('Connected to database')
     })
+    mongoose.set('useFindAndModify', false)
+
     return mongoDb
 }
 module.exports = {

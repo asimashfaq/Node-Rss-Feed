@@ -1,13 +1,13 @@
 const mongoose = require('mongoose')
 
-const feedSchema = mongoose.Schema({
+const episodeSchema = mongoose.Schema({
     title: {
         type: String,
         required: true,
         index: true
     },
-    link: {
-        type: String
+    published: {
+        type: Date
     },
     hash: {
         type: String,
@@ -15,42 +15,41 @@ const feedSchema = mongoose.Schema({
         required: true,
         index: true
     },
-    language: {
+    urlHash: {
         type: String
     },
-    type: {
+    guid: {
         type: String
     },
-    author: {
+    description: {
+        type: String
+    },
+    episode: {
         type: String
     },
     image: {
         type: String
     },
-    urlHash: {
+    duration: {
+        type: Number
+    },
+    episodeType: {
         type: String
     },
-    description: {
-        long: {
+    enclosure: {
+        url: {
             type: String
         },
-        short: {
-            type: String
-        }
-    },
-    owner: {
-        name: {
+        type: {
             type: String
         },
-        email: {
-            type: String
+        filesize: {
+            type: Number
         }
     },
-    categories: [
-        {
-            type: String
-        }
-    ]
+    feedHash: {
+        type: String
+    }
 })
-const feed = mongoose.model('feeds', feedSchema)
-module.exports = feed
+const episodes = mongoose.model('episodes', episodeSchema)
+module.exports = episodes
